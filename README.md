@@ -85,6 +85,10 @@ No additional configuration required. The plugin automatically reads credentials
 - **OpenAI & Zhipu AI**: `~/.local/share/opencode/auth.json`
 - **Google Cloud**: `~/.config/opencode/antigravity-accounts.json`
 
+### Google Cloud Setup
+
+To query Google Cloud (Antigravity) account quota, you need to install the [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) plugin first to authenticate your Google account.
+
 ## Google Cloud Models
 
 The plugin displays quota for these models:

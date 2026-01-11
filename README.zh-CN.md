@@ -85,6 +85,10 @@ Claude     2d 9h      ░░░░░░░░░░░░░░░░░░░�
 - **OpenAI 和智谱 AI**: `~/.local/share/opencode/auth.json`
 - **Google Cloud**: `~/.config/opencode/antigravity-accounts.json`
 
+### Google Cloud 设置
+
+如需查询 Google Cloud (Antigravity) 账号额度，需要先安装 [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) 插件来完成 Google 账号认证。
+
 ## Google Cloud 模型
 
 插件显示以下模型的额度：
