@@ -146,6 +146,25 @@ Claude     2d 9h      ░░░░░░░░░░░░░░░░░░░�
 
 如需查询 Google Cloud (Antigravity) 账号额度，需要先安装 [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) 插件来完成 Google 账号认证。
 
+## 安全性
+
+本插件可以安全放心使用：
+
+**读取的本地文件（只读）：**
+- `~/.local/share/opencode/auth.json` - OpenCode 官方认证存储
+- `~/.config/opencode/antigravity-accounts.json` - Antigravity 插件的账号存储
+
+**请求的 API 接口（均为官方接口）：**
+- `https://chatgpt.com/backend-api/wham/usage` - OpenAI 官方额度查询接口
+- `https://bigmodel.cn/api/monitor/usage/quota/limit` - 智谱 AI 官方额度查询接口
+- `https://oauth2.googleapis.com/token` - Google 官方 OAuth 接口
+- `https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels` - Google Cloud 官方接口
+
+**隐私保护：**
+- 插件不会保存、上传或缓存任何用户数据
+- 敏感信息（API Key）在输出时自动脱敏显示
+- 源代码完全开源，可随时审查
+
 ## Google Cloud 模型
 
 插件显示以下模型的额度：

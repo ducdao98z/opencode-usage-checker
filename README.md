@@ -146,6 +146,25 @@ No additional configuration required. The plugin automatically reads credentials
 
 To query Google Cloud (Antigravity) account quota, you need to install the [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) plugin first to authenticate your Google account.
 
+## Security
+
+This plugin is safe to use:
+
+**Local Files Accessed (read-only):**
+- `~/.local/share/opencode/auth.json` - OpenCode's official auth storage
+- `~/.config/opencode/antigravity-accounts.json` - Antigravity plugin's account storage
+
+**API Endpoints (all official):**
+- `https://chatgpt.com/backend-api/wham/usage` - OpenAI official quota API
+- `https://bigmodel.cn/api/monitor/usage/quota/limit` - Zhipu AI official quota API
+- `https://oauth2.googleapis.com/token` - Google official OAuth API
+- `https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels` - Google Cloud official API
+
+**Privacy:**
+- No data is stored, uploaded, or cached by this plugin
+- Sensitive information (API keys) is automatically masked in output
+- Source code is fully open for review
+
 ## Google Cloud Models
 
 The plugin displays quota for these models:
