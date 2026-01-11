@@ -31,7 +31,7 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 ```json
 {
-  "plugin": ["opencode-mystatus"]
+  "plugin": ["opencode-mystatus@1.0.1"]
 }
 ```
 

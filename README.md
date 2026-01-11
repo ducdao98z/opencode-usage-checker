@@ -31,7 +31,7 @@ Add to your `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["opencode-mystatus"]
+  "plugin": ["opencode-mystatus@1.0.1"]
 }
 ```
 
