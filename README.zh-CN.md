@@ -1,6 +1,7 @@
 # opencode-mystatus
 
 [![npm version](https://img.shields.io/npm/v/opencode-mystatus.svg)](https://www.npmjs.com/package/opencode-mystatus)
+[![npm 总下载量](https://img.shields.io/npm/dt/opencode-mystatus)](https://www.npmjs.com/package/opencode-mystatus)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [OpenCode](https://opencode.ai) 插件，用于查询多个 AI 平台的账号额度使用情况。
