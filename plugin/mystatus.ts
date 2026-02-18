@@ -27,16 +27,6 @@ import { queryAnthropicUsage } from "./lib/anthropic";
 // Plugin Export (single export to avoid other functions being loaded as plugin)
 // ============================================================================
 
-const TABLE_COLUMNS = [
-  "provider",
-  "account",
-  "plan",
-  "used",
-  "total",
-  "remaining",
-  "resetTime",
-] as const;
-
 export const MyStatusPlugin: Plugin = async () => {
   return {
     tool: {

@@ -220,7 +220,6 @@ function extractTableRow(
   } else if (d) {
     const totalPrompts = d.total_prompts ?? 0;
     const usedPrompts = d.used_prompts ?? 0;
-    const remainingPrompts = d.remaining_prompts ?? totalPrompts - usedPrompts;
     const usagePercent =
       totalPrompts > 0 ? (usedPrompts / totalPrompts) * 100 : 0;
 
