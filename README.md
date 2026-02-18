@@ -112,46 +112,6 @@ OpenCode will automatically use the mystatus tool to answer your question.
 
 > **Note:** For MiniMax, the Used column shows remaining tokens (decreases over time), and Remaining shows used tokens.
 
-## OpenAI Account Quota
-
-Account: user@example.com (team)
-
-3-hour limit
-███████████████████████████████ 85% remaining
-Resets in: 2h 30m
-
-## MiniMax Account Quota
-
-Account: MiniMax (abc1\*\*\*\*xyz9)
-
-5-hour prompt limit
-███████████████████████████████ 80% remaining
-Used: 1,000 / 5,000 prompts
-Resets in: 4h 51m (at 11:20:10 19/02/2026)
-
-## Anthropic Account Quota
-
-Account: Claude.ai (abc1\*\*\*\*xyz9)
-
-5-hour window (Session)
-███████████████████████████████ 75% remaining
-Used: 75%
-Resets in: 3h 20m (at 15:30:45 19/02/2026)
-
-7-day window (Weekly)
-███████████████████████████████ 60% remaining
-Used: 40%
-
-## GitHub Copilot Account Quota
-
-Account: GitHub Copilot (individual)
-
-Premium ████░░░░░░░░░░░░░░░░ 24% (229/300)
-
-Quota resets: 19d 0h (2026-02-01)
-
-````
-
 ## Features
 
 - Query quota usage across multiple AI platforms in one command
@@ -207,7 +167,7 @@ npm run build
 bun install
 bun run typecheck
 bun run build
-````
+```
 
 ## License
 
