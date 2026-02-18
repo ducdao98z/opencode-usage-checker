@@ -1,7 +1,7 @@
 {
     "name": "opencode-usage-checker",
     "version": "0.0.1",
-    "description": "Check all your AI subscription quotas in one command. Supports OpenAI, Anthropic, Z.ai, and Minimax. More platforms coming soon.",
+    "description": "Check all your AI subscription quotas in one command. Supports OpenAI, Github Copilot, Anthropic, Z.ai, and Minimax. More platforms coming soon.",
     "type": "module",
     "main": "dist/plugin/mystatus.js",
     "types": "dist/plugin/mystatus.d.ts",
