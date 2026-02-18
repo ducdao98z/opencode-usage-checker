@@ -1,14 +1,10 @@
-# opencode-mystatus
+# opencode-usage-checker
 
-[![npm version](https://img.shields.io/npm/v/opencode-mystatus.svg)](https://www.npmjs.com/package/opencode-mystatus)
-[![npm downloads](https://img.shields.io/npm/dt/opencode-mystatus)](https://www.npmjs.com/package/opencode-mystatus)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Base on: [opencode-mystatus](https://github.com/vbgate/opencode-mystatus)
 
 An [OpenCode](https://opencode.ai) plugin to query account quota usage for multiple AI platforms.
 
 [Tiếng Việt](./README.vi.md)
-
-![Check AI Quota in One Click](./assets/mystatus-banner-en.jpeg)
 
 ## Supported Platforms
 
@@ -40,13 +36,13 @@ To install this plugin, perform these steps:
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Query quota usage for all AI accounts",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Query quota usage for all AI accounts",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 
@@ -60,13 +56,13 @@ To install this plugin, perform these steps:
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Query quota usage for all AI accounts",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Query quota usage for all AI accounts",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 

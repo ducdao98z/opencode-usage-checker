@@ -1,6 +1,6 @@
 {
-    "name": "opencode-mystatus",
-    "version": "1.2.4",
+    "name": "opencode-usage-checker",
+    "version": "0.0.1",
     "description": "Check all your AI subscription quotas in one command. Supports OpenAI, Zhipu AI, Z.ai, and Minimax. More platforms coming soon.",
     "type": "module",
     "main": "dist/plugin/mystatus.js",
@@ -31,21 +31,22 @@
         "quota",
         "status",
         "openai",
-        "zhipu",
         "zai",
-        "gemini",
-        "claude"
+        "claude",
+        "minimax",
+        "anthropic",
+        "copilot"
     ],
     "author": "javazys",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/vbgate/opencode-mystatus.git"
+        "url": "git+https://github.com/ducdao98z/opencode-usage-checker.git"
     },
     "bugs": {
-        "url": "https://github.com/vbgate/opencode-mystatus/issues"
+        "url": "https://github.com/ducdao98z/opencode-usage-checker/issues"
     },
-    "homepage": "https://github.com/vbgate/opencode-mystatus#readme",
+    "homepage": "https://github.com/ducdao98z/opencode-usage-checker#readme",
     "dependencies": {
         "@opencode-ai/plugin": "^1.1.0",
         "playwright": "^1.58.2"

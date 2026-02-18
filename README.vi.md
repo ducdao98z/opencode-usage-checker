@@ -1,14 +1,8 @@
 # opencode-mystatus
 
-[![npm version](https://img.shields.io/npm/v/opencode-mystatus.svg)](https://www.npmjs.com/package/opencode-mystatus)
-[![npm downloads](https://img.shields.io/npm/dt/opencode-mystatus)](https://www.npmjs.com/package/opencode-mystatus)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 Plugin [OpenCode](https://opencode.ai) để truy vấn hạn mức sử dụng tài khoản nhiều nền tảng AI.
 
 [English](./README.md)
-
-![Check AI Quota in One Click](./assets/mystatus-banner-vi.jpeg)
 
 ## Các nền tảng được hỗ trợ
 
@@ -40,13 +34,13 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 
@@ -60,13 +54,13 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 
