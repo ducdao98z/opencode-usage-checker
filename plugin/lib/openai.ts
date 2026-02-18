@@ -1,23 +1,28 @@
 /**
- * OpenAI 额度查询模块
+ * OpenAI Quota Query Module
  *
- * [输入]: OAuth access token
- * [输出]: 格式化的额度使用情况
- * [定位]: 被 mystatus.ts 调用，处理 OpenAI 账号
- * [同步]: mystatus.ts, types.ts, utils.ts, i18n.ts
+ * [Input]: OAuth access token
+ * [Output]: Formatted quota usage information
+ * [Location]: Called by mystatus.ts, handles OpenAI accounts
+ * [Sync]: mystatus.ts, types.ts, utils.ts, i18n.ts
  */
 
 import { t } from "./i18n";
-import { type QueryResult, type OpenAIAuthData } from "./types";
+import {
+  type QueryResult,
+  type OpenAIAuthData,
+  type TableRowData,
+} from "./types";
 import {
   formatDuration,
+  formatResetTime,
   createProgressBar,
   calcRemainPercent,
   fetchWithTimeout,
 } from "./utils";
 
 // ============================================================================
-// 类型定义
+// Type Definitions
 // ============================================================================
 
 interface RateLimitWindow {
@@ -36,7 +41,7 @@ interface OpenAIUsageResponse {
 }
 
 // ============================================================================
-// JWT 解析
+// JWT Parsing
 // ============================================================================
 
 interface JwtPayload {
@@ -49,7 +54,7 @@ interface JwtPayload {
 }
 
 /**
- * Base64URL 解码
+ * Base64URL decode
  */
 function base64UrlDecode(input: string): string {
   const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
@@ -59,7 +64,7 @@ function base64UrlDecode(input: string): string {
 }
 
 /**
- * 解析 JWT token，提取 payload
+ * Parse JWT token and extract payload
  */
 function parseJwt(token: string): JwtPayload | null {
   try {
@@ -73,7 +78,7 @@ function parseJwt(token: string): JwtPayload | null {
 }
 
 /**
- * 从 JWT 中提取用户邮箱
+ * Extract user email from JWT
  */
 function getEmailFromJwt(token: string): string | null {
   const payload = parseJwt(token);
@@ -81,7 +86,7 @@ function getEmailFromJwt(token: string): string | null {
 }
 
 /**
- * 从 JWT 中提取 ChatGPT 账号 ID（用于团队/组织账号）
+ * Extract ChatGPT account ID from JWT (for team/organization accounts)
  */
 function getAccountIdFromJwt(token: string): string | null {
   const payload = parseJwt(token);
@@ -89,11 +94,11 @@ function getAccountIdFromJwt(token: string): string | null {
 }
 
 // ============================================================================
-// 工具函数
+// Utility Functions
 // ============================================================================
 
 /**
- * 将窗口时长（秒）转换为可读的窗口名称
+ * Convert window duration (seconds) to readable window name
  */
 function formatWindowName(seconds: number): string {
   const days = Math.round(seconds / 86400);
@@ -105,7 +110,7 @@ function formatWindowName(seconds: number): string {
 }
 
 /**
- * 格式化单个窗口的使用情况
+ * Format usage for a single window
  */
 function formatWindow(window: RateLimitWindow): string[] {
   const windowName = formatWindowName(window.limit_window_seconds);
@@ -121,13 +126,13 @@ function formatWindow(window: RateLimitWindow): string[] {
 }
 
 // ============================================================================
-// API 调用
+// API Calls
 // ============================================================================
 
 const OPENAI_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 
 /**
- * 获取 OpenAI 使用情况
+ * Fetch OpenAI usage data
  */
 async function fetchOpenAIUsage(
   accessToken: string,
@@ -155,11 +160,11 @@ async function fetchOpenAIUsage(
 }
 
 // ============================================================================
-// 格式化输出
+// Output Formatting
 // ============================================================================
 
 /**
- * 格式化 OpenAI 使用情况
+ * Format OpenAI usage information
  */
 function formatOpenAIUsage(
   data: OpenAIUsageResponse,
@@ -168,23 +173,23 @@ function formatOpenAIUsage(
   const { plan_type, rate_limit } = data;
   const lines: string[] = [];
 
-  // 标题行：Account: email (plan)
+  // Header line: Account: email (plan)
   const accountDisplay = email || t.unknown;
   lines.push(`${t.account}        ${accountDisplay} (${plan_type})`);
   lines.push("");
 
-  // 主窗口
+  // Primary window
   if (rate_limit?.primary_window) {
     lines.push(...formatWindow(rate_limit.primary_window));
   }
 
-  // 次窗口（如果存在）
+  // Secondary window (if exists)
   if (rate_limit?.secondary_window) {
     lines.push("");
     lines.push(...formatWindow(rate_limit.secondary_window));
   }
 
-  // 限额状态提示
+  // Limit status message
   if (rate_limit?.limit_reached) {
     lines.push("");
     lines.push(t.limitReached);
@@ -193,26 +198,61 @@ function formatOpenAIUsage(
   return lines.join("\n");
 }
 
+/**
+ * Extract table row data from OpenAI usage
+ */
+function extractTableRow(
+  data: OpenAIUsageResponse,
+  email: string | null,
+): TableRowData | undefined {
+  const { plan_type, rate_limit } = data;
+  const primary = rate_limit?.primary_window;
+
+  if (!primary) return undefined;
+
+  const usedPercent = primary.used_percent;
+  const remainPercent = calcRemainPercent(usedPercent);
+  const resetAfter = primary.reset_after_seconds;
+
+  const now = Date.now();
+  const resetDate = resetAfter > 0 ? new Date(now + resetAfter * 1000) : null;
+  const resetDateStr =
+    resetDate && resetDate.getTime() > now
+      ? formatResetTime(resetDate.getTime(), true)
+      : "-";
+  const resetIn = resetAfter > 0 ? formatDuration(resetAfter) : "-";
+
+  return {
+    provider: "OpenAI",
+    account: email || t.unknown,
+    plan: plan_type,
+    used: `${usedPercent}%`,
+    remaining: `${remainPercent}%`,
+    resetIn,
+    resetDate: resetDateStr,
+  };
+}
+
 // ============================================================================
-// 导出接口
+// Export Interface
 // ============================================================================
 
 export type { OpenAIAuthData };
 
 /**
- * 查询 OpenAI 账号额度
- * @param authData OpenAI 认证数据
- * @returns 查询结果，如果账号不存在或无效返回 null
+ * Query OpenAI account quota
+ * @param authData OpenAI auth data
+ * @returns Query result, or null if account doesn't exist or is invalid
  */
 export async function queryOpenAIUsage(
   authData: OpenAIAuthData | undefined,
 ): Promise<QueryResult | null> {
-  // 检查账号是否存在且有效
+  // Check if account exists and is valid
   if (!authData || authData.type !== "oauth" || !authData.access) {
     return null;
   }
 
-  // 检查 OAuth token 是否过期
+  // Check if OAuth token is expired
   if (authData.expires && authData.expires < Date.now()) {
     return {
       success: false,
@@ -223,9 +263,11 @@ export async function queryOpenAIUsage(
   try {
     const email = getEmailFromJwt(authData.access);
     const usage = await fetchOpenAIUsage(authData.access);
+    const tableRow = extractTableRow(usage, email);
     return {
       success: true,
       output: formatOpenAIUsage(usage, email),
+      tableRows: tableRow ? [tableRow] : [],
     };
   } catch (err) {
     return {

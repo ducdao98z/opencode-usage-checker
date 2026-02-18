@@ -1,161 +1,68 @@
 /**
- * 国际化模块
+ * Internationalization Module (English & Vietnamese)
  *
- * [输入]: 系统语言环境
- * [输出]: 翻译函数和当前语言
- * [定位]: 被所有平台模块共享使用
- * [同步]: openai.ts, zhipu.ts, minimax.ts, mystatus.ts, utils.ts
+ * [Input]: System locale
+ * [Output]: Translation function and current language
+ * [Location]: Shared by all platform modules
+ * [Sync]: openai.ts, minimax.ts, anthropic.ts, copilot.ts, mystatus.ts, utils.ts
  */
 
 // ============================================================================
-// 类型定义
+// Type Definitions
 // ============================================================================
 
-export type Language = "zh" | "en";
+export type Language = "en" | "vi";
 
 // ============================================================================
-// 语言检测
+// Language Detection
 // ============================================================================
 
 /**
- * 检测用户系统语言
- * 优先使用 Intl API，回退到环境变量，默认英文
+ * Detect user system language
+ * Prioritizes Intl API, falls back to environment variables, defaults to English
  */
 function detectLanguage(): Language {
-  // 1. 优先使用 Intl API（更可靠）
+  // 1. Prioritize Intl API (more reliable)
   try {
     const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
-    if (intlLocale.startsWith("zh")) return "zh";
+    if (intlLocale.startsWith("vi")) return "vi";
   } catch {
-    // Intl API 不可用，继续尝试环境变量
+    // Intl API not available, continue with environment variables
   }
 
-  // 2. 回退到环境变量
+  // 2. Fallback to environment variables
   const lang =
     process.env.LANG || process.env.LC_ALL || process.env.LANGUAGE || "";
-  if (lang.startsWith("zh")) return "zh";
+  if (lang.startsWith("vi")) return "vi";
 
-  // 3. 默认英文
+  // 3. Default to English
   return "en";
 }
 
 // ============================================================================
-// 翻译定义
+// Translation Definitions (English & Vietnamese)
 // ============================================================================
 
 const translations = {
-  zh: {
-    // 时间单位
-    days: (n: number) => `${n}天`,
-    hours: (n: number) => `${n}小时`,
-    minutes: (n: number) => `${n}分钟`,
-
-    // 限额相关
-    hourLimit: (h: number) => `${h}小时限额`,
-    dayLimit: (d: number) => `${d}天限额`,
-    remaining: (p: number) => `剩余 ${p}%`,
-    resetIn: (t: string) => `重置: ${t}后`,
-    limitReached: "⚠️ 已达到限额上限!",
-
-    // 通用
-    account: "Account:",
-    unknown: "未知",
-    used: "已用",
-
-    // 错误信息
-    authError: (path: string, err: string) =>
-      `❌ 无法读取认证文件: ${path}\n错误: ${err}`,
-    apiError: (status: number, text: string) =>
-      `OpenAI API 请求失败 (${status}): ${text}`,
-    timeoutError: (seconds: number) => `请求超时 (${seconds}秒)`,
-    tokenExpired:
-      "⚠️ OAuth 授权已过期，请在 OpenCode 中使用一次 OpenAI 模型以刷新授权。",
-    noAccounts:
-      "未找到任何已配置的账号。\n\n支持的账号类型:\n- OpenAI (Plus/Team/Pro 订阅用户)\n- 智谱 AI (Coding Plan)\n- Z.ai (Coding Plan)\n- MiniMax (Coding Plan)\n- Google Cloud (Antigravity)",
-    queryFailed: "❌ 查询失败的账号:\n",
-
-    // 平台标题
-    openaiTitle: "## OpenAI 账号额度",
-    zhipuTitle: "## 智谱 AI 账号额度",
-    zaiTitle: "## Z.ai 账号额度",
-
-    // 智谱 AI 相关
-    zhipuApiError: (status: number, text: string) =>
-      `智谱 API 请求失败 (${status}): ${text}`,
-    zaiApiError: (status: number, text: string) =>
-      `Z.ai API 请求失败 (${status}): ${text}`,
-    zhipuTokensLimit: "5 小时 Token 限额",
-    zhipuMcpLimit: "MCP 月度配额",
-    zhipuAccountName: "Coding Plan",
-    zaiAccountName: "Z.ai",
-    noQuotaData: "暂无配额数据",
-
-    // MiniMax 相关
-    minimaxTitle: "## MiniMax 账号额度",
-    minimaxApiError: (status: number, text: string) =>
-      `MiniMax API 请求失败 (${status}): ${text}`,
-    minimaxPromptLimit: "5 小时 Prompt 限额",
-    minimaxConfigRequired:
-      "⚠️ MiniMax 需要配置 session cookie。\n" +
-      "请创建 ~/.config/opencode/minimax-session.json:\n" +
-      '  {"session": "HERTZ-SESSION值"}\n\n' +
-      "获取方法：\n" +
-      "1. 登录 https://platform.minimaxi.io\n" +
-      "2. 打开 DevTools (F12) → Network\n" +
-      "3. 访问 /coding_plan/remains\n" +
-      "4. 复制 Request Headers 中的 Cookie 值",
-
-    // Google 相关
-    googleTitle: "## Google Cloud 账号额度",
-    googleApiError: (status: number, text: string) =>
-      `Google API 请求失败 (${status}): ${text}`,
-    googleNoProjectId: "⚠️ 缺少 project_id，无法查询额度。",
-
-    // GitHub Copilot 相关
-    copilotTitle: "## GitHub Copilot 账号额度",
-    copilotApiError: (status: number, text: string) =>
-      `GitHub Copilot API 请求失败 (${status}): ${text}`,
-    premiumRequests: "Premium",
-    chatQuota: "Chat",
-    completionsQuota: "Completions",
-    overage: "超额使用",
-    overageRequests: "次请求",
-    quotaResets: "配额重置",
-    resetsSoon: "即将重置",
-    modelBreakdown: "模型使用明细:",
-    billingPeriod: "计费周期",
-    copilotQuotaUnavailable:
-      "⚠️ GitHub Copilot 配额查询暂时不可用。\n" +
-      "OpenCode 的新 OAuth 集成不支持访问配额 API。",
-    copilotQuotaWorkaround:
-      "解决方案:\n" +
-      "1. 创建一个 fine-grained PAT (访问 https://github.com/settings/tokens?type=beta)\n" +
-      "2. 在 'Account permissions' 中将 'Plan' 设为 'Read-only'\n" +
-      "3. 创建配置文件 ~/.config/opencode/copilot-quota-token.json:\n" +
-      '   {"token": "github_pat_xxx...", "username": "你的用户名"}\n\n' +
-      "其他方法:\n" +
-      "• 在 VS Code 中点击状态栏的 Copilot 图标查看配额\n" +
-      "• 访问 https://github.com/settings/billing 查看使用情况",
-  },
   en: {
-    // 时间单位
+    // Time units
     days: (n: number) => `${n}d`,
     hours: (n: number) => `${n}h`,
     minutes: (n: number) => `${n}m`,
 
-    // 限额相关
+    // Quota related
     hourLimit: (h: number) => `${h}-hour limit`,
     dayLimit: (d: number) => `${d}-day limit`,
     remaining: (p: number) => `${p}% remaining`,
-    resetIn: (t: string) => `Resets in: ${t}`,
+    resetIn: (t: string) => `${t}`,
     limitReached: "⚠️ Rate limit reached!",
 
-    // 通用
+    // Common
     account: "Account:",
     unknown: "unknown",
     used: "Used",
 
-    // 错误信息
+    // Error messages
     authError: (path: string, err: string) =>
       `❌ Failed to read auth file: ${path}\nError: ${err}`,
     apiError: (status: number, text: string) =>
@@ -164,26 +71,14 @@ const translations = {
     tokenExpired:
       "⚠️ OAuth token expired. Please use an OpenAI model in OpenCode to refresh authorization.",
     noAccounts:
-      "No configured accounts found.\n\nSupported account types:\n- OpenAI (Plus/Team/Pro subscribers)\n- Zhipu AI (Coding Plan)\n- Z.ai (Coding Plan)\n- MiniMax (Coding Plan)\n- Google Cloud (Antigravity)",
+      "No configured accounts found.\n\nSupported account types:\n- OpenAI (Plus/Team/Pro subscribers)\n- MiniMax (Coding Plan)\n- Anthropic (Claude API)\n- GitHub Copilot",
     queryFailed: "❌ Failed to query accounts:\n",
-
-    // 平台标题
-    openaiTitle: "## OpenAI Account Quota",
-    zhipuTitle: "## Zhipu AI Account Quota",
-    zaiTitle: "## Z.ai Account Quota",
-
-    // 智谱 AI 相关
-    zhipuApiError: (status: number, text: string) =>
-      `Zhipu API request failed (${status}): ${text}`,
-    zaiApiError: (status: number, text: string) =>
-      `Z.ai API request failed (${status}): ${text}`,
-    zhipuTokensLimit: "5-hour token limit",
-    zhipuMcpLimit: "MCP monthly quota",
-    zhipuAccountName: "Coding Plan",
-    zaiAccountName: "Z.ai",
     noQuotaData: "No quota data available",
 
-    // MiniMax 相关
+    // Platform titles
+    openaiTitle: "## OpenAI Account Quota",
+
+    // MiniMax related
     minimaxTitle: "## MiniMax Account Quota",
     minimaxApiError: (status: number, text: string) =>
       `MiniMax API request failed (${status}): ${text}`,
@@ -197,14 +92,22 @@ const translations = {
       "2. Open DevTools (F12) → Network\n" +
       "3. Visit /coding_plan/remains\n" +
       "4. Copy Cookie from Request Headers",
+    minimaxNeedLogin:
+      "⚠️ MiniMax session expired or not logged in.\n" +
+      "Browser will open automatically for you to login.\n" +
+      "After login, close the browser and session will be saved automatically.",
 
-    // Google 相关
-    googleTitle: "## Google Cloud Account Quota",
-    googleApiError: (status: number, text: string) =>
-      `Google API request failed (${status}): ${text}`,
-    googleNoProjectId: "⚠️ Missing project_id, cannot query quota.",
+    // Anthropic related
+    anthropicTitle: "## Anthropic Account Quota",
+    anthropicApiError: (status: number, text: string) =>
+      `Anthropic API request failed (${status}): ${text}`,
+    anthropic24hUsage: "24-hour usage",
+    anthropic1mUsage: "This month",
+    anthropicMonthlyLimit: "Monthly limit",
+    anthropic5HourUsage: "5-hour window (Session)",
+    anthropic7DayUsage: "7-day window (Weekly)",
 
-    // GitHub Copilot 相关
+    // GitHub Copilot related
     copilotTitle: "## GitHub Copilot Account Quota",
     copilotApiError: (status: number, text: string) =>
       `GitHub Copilot API request failed (${status}): ${text}`,
@@ -229,15 +132,129 @@ const translations = {
       "Alternatives:\n" +
       "• Click the Copilot icon in VS Code status bar to view quota\n" +
       "• Visit https://github.com/settings/billing for usage info",
+
+    // Table display
+    tableTitle: "## AI Provider Quota Status",
+    tableHeader: {
+      provider: "Provider",
+      account: "Account",
+      plan: "Plan",
+      used: "Used",
+      remaining: "Remaining",
+      resetIn: "Reset In",
+      resetDate: "Reset Date",
+    },
+  },
+
+  vi: {
+    // Time units
+    days: (n: number) => `${n}ngày`,
+    hours: (n: number) => `${n}giờ`,
+    minutes: (n: number) => `${n}phút`,
+
+    // Quota related
+    hourLimit: (h: number) => `Giới hạn ${h} giờ`,
+    dayLimit: (d: number) => `Giới hạn ${d} ngày`,
+    remaining: (p: number) => `Còn lại ${p}%`,
+    resetIn: (t: string) => `${t}`,
+    limitReached: "⚠️ Đã đạt Giới hạn!",
+
+    // Common
+    account: "Tài khoản:",
+    unknown: "Không xác định",
+    used: "Đã dùng",
+
+    // Error messages
+    authError: (path: string, err: string) =>
+      `❌ Không đọc được file auth: ${path}\nLỗi: ${err}`,
+    apiError: (status: number, text: string) =>
+      `Yêu cầu OpenAI API thất bại (${status}): ${text}`,
+    timeoutError: (seconds: number) => `Hết thời gian chờ (${seconds} giây)`,
+    tokenExpired:
+      "⚠️ Token OAuth đã hết hạn. Vui lòng sử dụng một mô hình OpenAI trong OpenCode để làm mới quyền truy cập.",
+    noAccounts:
+      "Không tìm thấy tài khoản nào đã cấu hình.\n\nCác loại tài khoản được hỗ trợ:\n- OpenAI (Plus/Team/Pro)\n- MiniMax (Coding Plan)\n- Anthropic (Claude API)\n- GitHub Copilot",
+    queryFailed: "❌ Các tài khoản truy vấn thất bại:\n",
+    noQuotaData: "Không có dữ liệu hạn mức",
+
+    // Platform titles
+    openaiTitle: "## Hạn mức tài khoản OpenAI",
+
+    // MiniMax related
+    minimaxTitle: "## Hạn mức tài khoản MiniMax",
+    minimaxApiError: (status: number, text: string) =>
+      `Yêu cầu MiniMax API thất bại (${status}): ${text}`,
+    minimaxPromptLimit: "Giới hạn prompt 5 giờ",
+    minimaxConfigRequired:
+      "⚠️ MiniMax yêu cầu cấu hình session cookie.\n" +
+      "Tạo ~/.config/opencode/minimax-session.json:\n" +
+      '  {"session": "HERTZ-SESSION_VALUE"}\n\n' +
+      "Cách lấy:\n" +
+      "1. Đăng nhập https://platform.minimaxi.io\n" +
+      "2. Mở DevTools (F12) → Network\n" +
+      "3. Truy cập /coding_plan/remains\n" +
+      "4. Sao chép Cookie từ Request Headers",
+    minimaxNeedLogin:
+      "⚠️ Session MiniMax đã hết hạn hoặc chưa đăng nhập.\n" +
+      "Trình duyệt sẽ tự động mở để bạn đăng nhập.\n" +
+      "Sau khi đăng nhập, đóng trình duyệt và session sẽ được lưu tự động.",
+
+    // Anthropic related
+    anthropicTitle: "## Hạn mức tài khoản Anthropic",
+    anthropicApiError: (status: number, text: string) =>
+      `Yêu cầu Anthropic API thất bại (${status}): ${text}`,
+    anthropic24hUsage: "Sử dụng 24 giờ",
+    anthropic1mUsage: "Tháng này",
+    anthropicMonthlyLimit: "Hạn mức hàng tháng",
+    anthropic5HourUsage: "Cửa sổ 5 giờ (Session)",
+    anthropic7DayUsage: "Cửa sổ 7 ngày (Weekly)",
+
+    // GitHub Copilot related
+    copilotTitle: "## Hạn mức tài khoản GitHub Copilot",
+    copilotApiError: (status: number, text: string) =>
+      `Yêu cầu GitHub Copilot API thất bại (${status}): ${text}`,
+    premiumRequests: "Premium",
+    chatQuota: "Chat",
+    completionsQuota: "Completions",
+    overage: "Vượt quá",
+    overageRequests: "yêu cầu",
+    quotaResets: "Hạn mức reset",
+    resetsSoon: "Sắp reset",
+    modelBreakdown: "Chi tiết theo model:",
+    billingPeriod: "Kỳ thanh toán",
+    copilotQuotaUnavailable:
+      "⚠️ Truy vấn hạn mức GitHub Copilot không khả dụng.\n" +
+      "Tích hợp OAuth mới của OpenCode không hỗ trợ truy cập API hạn mức.",
+    copilotQuotaWorkaround:
+      "Giải pháp:\n" +
+      "1. Tạo fine-grained PAT (truy cập https://github.com/settings/tokens?type=beta)\n" +
+      "2. Trong 'Account permissions', đặt 'Plan' thành 'Read-only'\n" +
+      "3. Tạo file cấu hình ~/.config/opencode/copilot-quota-token.json:\n" +
+      '   {"token": "github_pat_xxx...", "username": "TenNguoiDung"}\n\n' +
+      "Các cách khác:\n" +
+      "• Nhấ vào biểpu tượng Copilot trong thanh trạng thái VS Code để xem hạn mức\n" +
+      "• Truy cập https://github.com/settings/billing để xem thông tin sử dụng",
+
+    // Table display
+    tableTitle: "## Trạng thái hạn mức nhà cung cấp AI",
+    tableHeader: {
+      provider: "Nhà cung cấp",
+      account: "Tài khoản",
+      plan: "Gói",
+      used: "Đã dùng",
+      remaining: "Còn lại",
+      resetIn: "Thời gian reset",
+      resetDate: "Ngày reset",
+    },
   },
 } as const;
 
 // ============================================================================
-// 导出
+// Exports
 // ============================================================================
 
-/** 当前语言（模块加载时检测一次） */
+/** Current language (detected once at module load) */
 export const currentLang = detectLanguage();
 
-/** 翻译函数 */
+/** Translation function */
 export const t = translations[currentLang];

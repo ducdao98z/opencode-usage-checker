@@ -1,220 +1,279 @@
 /**
- * MiniMax Coding Plan 额度查询模块
+ * MiniMax Coding Plan Quota Query Module
  *
- * [输入]: Session cookie from ~/.config/opencode/minimax-session.json
- * [输出]: 格式化的额度使用情况
- * [定位]: 被 mystatus.ts 调用，处理 MiniMax Coding Plan 账号
- * [同步]: mystatus.ts, types.ts, utils.ts, i18n.ts
- *
- * NOTE: MiniMax quota API requires cookie auth (HERTZ-SESSION),
- * not API key auth. Users need to provide session cookie.
+ * [Input]: API key from auth.json
+ * [Output]: Formatted quota usage information
+ * [Location]: Called by mystatus.ts, handles MiniMax Coding Plan accounts
  */
 
 import { t } from "./i18n";
 import {
   type QueryResult,
   type MiniMaxAuthData,
+  type TableRowData,
   HIGH_USAGE_THRESHOLD,
 } from "./types";
 import {
-  formatDuration,
+  formatResetTime,
   createProgressBar,
   calcRemainPercent,
-  fetchWithTimeout,
   maskString,
 } from "./utils";
-import { readFile } from "fs/promises";
-import { homedir } from "os";
-import { join } from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 // ============================================================================
-// 类型定义 (best-guess based on MiniMax Coding Plan FAQ)
+// Type Definitions
 // ============================================================================
 
-/**
- * MiniMax /coding_plan/remains response envelope.
- * API: GET https://platform.minimaxi.io/v1/api/openplatform/coding_plan/remains
- */
+interface MiniMaxModelRemain {
+  start_time: number;
+  end_time: number;
+  remains_time: number;
+  current_interval_total_count: number;
+  current_interval_usage_count: number;
+  model_name: string;
+}
+
 interface MiniMaxRemainsResponse {
   base_resp: {
     status_code: number;
     status_msg: string;
   };
+  model_remains?: MiniMaxModelRemain[];
   data?: {
-    /** Plan name, e.g. "Starter", "Plus", "Max" */
     plan_name?: string;
-    /** Total prompts allowed per 5h window */
     total_prompts: number;
-    /** Prompts used in current 5h window */
     used_prompts: number;
-    /** Prompts remaining in current 5h window */
     remaining_prompts: number;
-    /** Next reset timestamp in ms (rolling window) */
     next_reset_time: number;
-    /** Usage percentage (0-100) */
     usage_percentage: number;
   };
 }
 
 // ============================================================================
-// 配置
+// Configuration
 // ============================================================================
 
 const MINIMAX_QUOTA_URL =
-  "https://platform.minimaxi.io/v1/api/openplatform/coding_plan/remains";
-
-interface MiniMaxSessionConfig {
-  session: string;
-}
+  "https://www.minimax.io/v1/api/openplatform/coding_plan/remains";
 
 // ============================================================================
-// 配置读取
+// API Calls - use curl subprocess to avoid Cloudflare blocking
 // ============================================================================
 
-/**
- * 读取 MiniMax session cookie
- * 从 ~/.config/opencode/minimax-session.json
- */
-async function loadMiniMaxSession(): Promise<string | null> {
-  const configPath = join(homedir(), ".config/opencode/minimax-session.json");
+async function fetchWithCurl(apiKey: string): Promise<MiniMaxRemainsResponse> {
+  const cmd = `curl -s -X GET "${MINIMAX_QUOTA_URL}" \
+    -H "Authorization: Bearer ${apiKey}" \
+    -H "Content-Type: application/json" \
+    -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+    -H "Accept: application/json"`;
 
+  let stdout = "";
   try {
-    const content = await readFile(configPath, "utf-8");
-    const config = JSON.parse(content) as MiniMaxSessionConfig;
-    return config.session || null;
-  } catch {
-    return null;
+    const result = await execAsync(cmd, { timeout: 30000 });
+    stdout = result.stdout;
+    const stderr = result.stderr;
+
+    if (stderr && !stderr.includes("curl:")) {
+      console.error("curl stderr:", stderr);
+    }
+
+    const data = JSON.parse(stdout) as MiniMaxRemainsResponse;
+
+    if (data.base_resp.status_code !== 0) {
+      throw new Error(
+        t.minimaxApiError(
+          data.base_resp.status_code,
+          data.base_resp.status_msg || "Unknown error",
+        ),
+      );
+    }
+
+    return data;
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      throw new Error(t.minimaxApiError(0, stdout || "Invalid response"));
+    }
+    throw err;
   }
 }
 
 // ============================================================================
-// API 调用
+// Output Formatting
 // ============================================================================
 
-/**
- * 获取 MiniMax Coding Plan 使用情况
- */
-async function fetchMiniMaxUsage(
-  session: string,
-): Promise<MiniMaxRemainsResponse> {
-  const response = await fetchWithTimeout(MINIMAX_QUOTA_URL, {
-    method: "GET",
-    headers: {
-      Cookie: `HERTZ-SESSION=${session}`,
-      "Content-Type": "application/json",
-      "User-Agent": "OpenCode-Status-Plugin/1.0",
-    },
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(t.minimaxApiError(response.status, errorText));
-  }
-
-  const data = (await response.json()) as MiniMaxRemainsResponse;
-
-  if (data.base_resp.status_code !== 0) {
-    throw new Error(
-      t.minimaxApiError(
-        data.base_resp.status_code,
-        data.base_resp.status_msg || "Unknown error",
-      ),
-    );
-  }
-
-  return data;
-}
-
-// ============================================================================
-// 格式化输出
-// ============================================================================
-
-/**
- * 格式化 MiniMax 使用情况
- */
 function formatMiniMaxUsage(
   resp: MiniMaxRemainsResponse,
-  session: string,
+  apiKey: string,
 ): string {
   const lines: string[] = [];
+
+  const modelRemains = resp.model_remains?.[0];
   const d = resp.data;
 
-  // 标题行：Account: masked session (Plan)
-  const maskedSession = maskString(session, 8);
-  const planLabel = d?.plan_name
-    ? `Coding Plan - ${d.plan_name}`
-    : "Coding Plan";
-  lines.push(`${t.account}        ${maskedSession} (${planLabel})`);
-  lines.push("");
+  const maskedKey = maskString(apiKey, 8);
 
-  // 如果 data 为空或缺少关键字段
-  if (!d || (d.total_prompts == null && d.remaining_prompts == null)) {
-    lines.push(t.noQuotaData);
-    return lines.join("\n");
-  }
+  if (modelRemains) {
+    const total = modelRemains.current_interval_total_count;
+    const used = modelRemains.current_interval_usage_count;
+    const usagePercent = total > 0 ? (used / total) * 100 : 0;
+    const remainPercent = calcRemainPercent(usagePercent);
+    const progressBar = createProgressBar(remainPercent);
 
-  // 计算使用情况
-  const total = d.total_prompts ?? 0;
-  const used = d.used_prompts ?? total - (d.remaining_prompts ?? total);
-  const remaining = d.remaining_prompts ?? total - used;
-  const usagePercent =
-    d.usage_percentage ?? (total > 0 ? (used / total) * 100 : 0);
-  const remainPercent = calcRemainPercent(usagePercent);
-
-  // Prompt 限额
-  const progressBar = createProgressBar(remainPercent);
-  lines.push(t.minimaxPromptLimit);
-  lines.push(`${progressBar} ${t.remaining(remainPercent)}`);
-  lines.push(`${t.used}: ${used} / ${total} prompts`);
-
-  // 重置时间
-  if (d.next_reset_time) {
-    const resetSeconds = Math.max(
-      0,
-      Math.floor((d.next_reset_time - Date.now()) / 1000),
+    lines.push(
+      `**${t.account}** MiniMax (${maskedKey}) - ${modelRemains.model_name}`,
     );
-    lines.push(t.resetIn(formatDuration(resetSeconds)));
-  }
-
-  // 高使用率警告
-  if (usagePercent >= HIGH_USAGE_THRESHOLD) {
     lines.push("");
-    lines.push(t.limitReached);
+    lines.push(`🔄 ${t.minimaxPromptLimit}`);
+    lines.push(`${progressBar} ${t.remaining(remainPercent)}`);
+    lines.push(`${t.used}: ${used} / ${total} prompts`);
+
+    if (modelRemains.end_time) {
+      if (modelRemains.end_time > Date.now()) {
+        lines.push(`${t.resetIn(formatResetTime(modelRemains.end_time))}`);
+      }
+    }
+
+    if (usagePercent >= HIGH_USAGE_THRESHOLD) {
+      lines.push("");
+      lines.push(t.limitReached);
+    }
+  } else if (d) {
+    const planLabel = d?.plan_name
+      ? `Coding Plan - ${d.plan_name}`
+      : "Coding Plan";
+    lines.push(`${t.account}        ${maskedKey} (${planLabel})`);
+    lines.push("");
+
+    if (!d || (d.total_prompts == null && d.remaining_prompts == null)) {
+      lines.push(t.noQuotaData);
+      return lines.join("\n");
+    }
+
+    const total = d.total_prompts ?? 0;
+    const used = d.used_prompts ?? total - (d.remaining_prompts ?? total);
+    const usagePercent =
+      d.usage_percentage ?? (total > 0 ? (used / total) * 100 : 0);
+    const remainPercent = calcRemainPercent(usagePercent);
+
+    const progressBar = createProgressBar(remainPercent);
+    lines.push(t.minimaxPromptLimit);
+    lines.push(`${progressBar} ${t.remaining(remainPercent)}`);
+    lines.push(`${t.used}: ${used} / ${total} prompts`);
+
+    if (d.next_reset_time) {
+      if (d.next_reset_time > Date.now()) {
+        lines.push(t.resetIn(formatResetTime(d.next_reset_time)));
+      }
+    }
+
+    if (usagePercent >= HIGH_USAGE_THRESHOLD) {
+      lines.push("");
+      lines.push(t.limitReached);
+    }
+  } else {
+    lines.push(`${t.account} MiniMax (${maskedKey})`);
+    lines.push("");
+    lines.push(t.noQuotaData);
   }
 
   return lines.join("\n");
 }
 
 // ============================================================================
-// 导出接口
+// Export Interface
 // ============================================================================
 
 /**
- * 查询 MiniMax Coding Plan 额度
- * @param authData MiniMax 认证数据 (currently unused - requires session cookie)
- * @returns 查询结果，如果账号不存在或无效返回 null
- *
- * NOTE: MiniMax quota API requires HERTZ-SESSION cookie.
- * Users must create ~/.config/opencode/minimax-session.json:
- *   {"session": "MTc3MTA2NDA0Nnx..."}
+ * Extract table row data from MiniMax usage
  */
-export async function queryMiniMaxUsage(
-  _authData: MiniMaxAuthData | undefined,
-): Promise<QueryResult | null> {
-  const session = await loadMiniMaxSession();
+function extractTableRow(
+  resp: MiniMaxRemainsResponse,
+  apiKey: string,
+): TableRowData | undefined {
+  const maskedKey = maskString(apiKey, 4);
+  const modelRemains = resp.model_remains?.[0];
+  const d = resp.data;
 
-  if (!session) {
+  let used = "-";
+  let remaining = "-";
+  let resetIn = "-";
+  let resetDate = "-";
+
+  if (modelRemains) {
+    const totalPrompts = modelRemains.current_interval_total_count;
+    const usedPrompts = modelRemains.current_interval_usage_count;
+    const remainingPrompts = totalPrompts - usedPrompts;
+    const usagePercent =
+      totalPrompts > 0 ? (usedPrompts / totalPrompts) * 100 : 0;
+
+    used = `${Math.round(100 - usagePercent)}%`;
+    remaining = `${Math.round(usagePercent)}%`;
+    if (modelRemains.end_time && modelRemains.end_time > Date.now()) {
+      resetDate = formatResetTime(modelRemains.end_time, true);
+      resetIn = formatResetTime(modelRemains.end_time);
+      resetIn = extractCountdown(resetIn);
+    }
+  } else if (d) {
+    const totalPrompts = d.total_prompts ?? 0;
+    const usedPrompts = d.used_prompts ?? 0;
+    const remainingPrompts = d.remaining_prompts ?? totalPrompts - usedPrompts;
+    const usagePercent =
+      totalPrompts > 0 ? (usedPrompts / totalPrompts) * 100 : 0;
+
+    used = `${Math.round(100 - usagePercent)}%`;
+    remaining = `${Math.round(usagePercent)}%`;
+    if (d.next_reset_time && d.next_reset_time > Date.now()) {
+      resetDate = formatResetTime(d.next_reset_time, true);
+      resetIn = formatResetTime(d.next_reset_time);
+      resetIn = extractCountdown(resetIn);
+    }
+  }
+
+  const planLabel = d?.plan_name
+    ? `Coding Plan - ${d.plan_name}`
+    : "Coding Plan";
+
+  return {
+    provider: "MiniMax",
+    account: maskedKey,
+    plan: planLabel,
+    used,
+    remaining,
+    resetIn,
+    resetDate,
+  };
+}
+
+/**
+ * Extract countdown from full reset time string
+ * E.g., "Resets in: 4h 51m (at 11:20:10 19/02/2026)" -> "4h 51m"
+ */
+function extractCountdown(fullString: string): string {
+  const match = fullString.match(/Resets in:\s*(.+?)\s*\(/);
+  return match ? match[1].trim() : fullString;
+}
+
+export async function queryMiniMaxUsage(
+  authData: MiniMaxAuthData | undefined,
+): Promise<QueryResult | null> {
+  if (!authData?.key) {
     return {
       success: false,
-      error: t.minimaxConfigRequired,
+      error: t.minimaxNeedLogin,
     };
   }
 
   try {
-    const usage = await fetchMiniMaxUsage(session);
+    const usage = await fetchWithCurl(authData.key);
+    const tableRow = extractTableRow(usage, authData.key);
     return {
       success: true,
-      output: formatMiniMaxUsage(usage, session),
+      output: formatMiniMaxUsage(usage, authData.key),
+      tableRows: tableRow ? [tableRow] : [],
     };
   } catch (err) {
     return {

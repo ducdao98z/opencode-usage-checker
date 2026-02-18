@@ -17,8 +17,9 @@ import {
   type CopilotAuthData,
   type CopilotQuotaConfig,
   type CopilotTier,
+  type TableRowData,
 } from "./types";
-import { createProgressBar, fetchWithTimeout } from "./utils";
+import { createProgressBar, fetchWithTimeout, formatResetTime } from "./utils";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -330,25 +331,6 @@ function formatQuotaLine(
 }
 
 /**
- * Calculate days until reset
- */
-function getResetCountdown(resetDate: string): string {
-  const reset = new Date(resetDate);
-  const now = new Date();
-  const diffMs = reset.getTime() - now.getTime();
-
-  if (diffMs <= 0) return t.resetsSoon;
-
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-  return `${hours}h`;
-}
-
-/**
  * Format GitHub Copilot usage information
  */
 function formatCopilotUsage(data: CopilotUsageResponse): string {
@@ -386,8 +368,8 @@ function formatCopilotUsage(data: CopilotUsageResponse): string {
 
   // Reset date
   lines.push("");
-  const resetCountdown = getResetCountdown(data.quota_reset_date);
-  lines.push(`${t.quotaResets}: ${resetCountdown} (${data.quota_reset_date})`);
+  const resetTimestamp = new Date(data.quota_reset_date).getTime();
+  lines.push(t.resetIn(formatResetTime(resetTimestamp)));
 
   return lines.join("\n");
 }
@@ -478,6 +460,49 @@ export type { CopilotAuthData };
  * @param authData GitHub Copilot authentication data (optional if using PAT config)
  * @returns Query result, null if no account configured
  */
+
+/**
+ * Extract table row data from Copilot usage
+ */
+function extractCopilotTableRow(
+  data: CopilotUsageResponse,
+): TableRowData | undefined {
+  const premium = data.quota_snapshots.premium_interactions;
+  if (!premium) return undefined;
+
+  const total = premium.entitlement;
+  const used = total - premium.remaining;
+  const remaining = Math.round(premium.percent_remaining);
+  const resetDate = new Date(data.quota_reset_date);
+  const resetDateStr =
+    resetDate.getTime() > Date.now()
+      ? formatResetTime(resetDate.getTime(), true)
+      : "-";
+  const resetIn =
+    resetDate.getTime() > Date.now()
+      ? extractCountdown(formatResetTime(resetDate.getTime()))
+      : t.resetsSoon;
+
+  return {
+    provider: "GitHub Copilot",
+    account: `@${data.copilot_plan}`,
+    plan: data.copilot_plan,
+    used: `${Math.round((used / total) * 100)}%`,
+    remaining: `${remaining}%`,
+    resetIn,
+    resetDate: resetDateStr,
+  };
+}
+
+/**
+ * Extract countdown from full reset time string
+ * E.g., "Resets in: 4h 51m (at 11:20:10 19/02/2026)" -> "4h 51m"
+ */
+function extractCountdown(fullString: string): string {
+  const match = fullString.match(/Resets in:\s*(.+?)\s*\(/);
+  return match ? match[1].trim() : fullString;
+}
+
 export async function queryCopilotUsage(
   authData: CopilotAuthData | undefined,
 ): Promise<QueryResult | null> {
@@ -489,6 +514,7 @@ export async function queryCopilotUsage(
       return {
         success: true,
         output: formatPublicBillingUsage(billingUsage, quotaConfig.tier),
+        tableRows: [],
       };
     } catch (err) {
       // PAT config exists but failed - report the error
@@ -511,9 +537,11 @@ export async function queryCopilotUsage(
 
   try {
     const usage = await fetchCopilotUsage(authData);
+    const tableRow = extractCopilotTableRow(usage);
     return {
       success: true,
       output: formatCopilotUsage(usage),
+      tableRows: tableRow ? [tableRow] : [],
     };
   } catch (err) {
     return {

@@ -1,10 +1,10 @@
 /**
- * OpenCode 额度状态查询插件
+ * OpenCode Quota Status Query Plugin
  *
- * [输入]: ~/.local/share/opencode/auth.json 和 ~/.config/opencode/antigravity-accounts.json 中的认证信息
- * [输出]: 带进度条的额度使用情况展示
- * [定位]: 通过 mystatus 工具查询各账号额度
- * [同步]: lib/openai.ts, lib/zhipu.ts, lib/minimax.ts, lib/google.ts, lib/types.ts, lib/i18n.ts
+ * [Input]: Auth info from ~/.local/share/opencode/auth.json
+ * [Output]: Quota usage display with progress bars
+ * [Location]: Queries account quotas via mystatus tool
+ * [Sync]: lib/openai.ts, lib/minimax.ts, lib/anthropic.ts, lib/copilot.ts, lib/types.ts, lib/i18n.ts
  */
 
 import { type Plugin, tool } from "@opencode-ai/plugin";
@@ -13,26 +13,39 @@ import { homedir } from "os";
 import { join } from "path";
 
 import { t } from "./lib/i18n";
-import { type AuthData, type QueryResult } from "./lib/types";
+import {
+  type AuthData,
+  type QueryResult,
+  type TableRowData,
+} from "./lib/types";
 import { queryOpenAIUsage } from "./lib/openai";
-import { queryZaiUsage, queryZhipuUsage } from "./lib/zhipu";
 import { queryMiniMaxUsage } from "./lib/minimax";
-import { queryGoogleUsage } from "./lib/google";
 import { queryCopilotUsage } from "./lib/copilot";
+import { queryAnthropicUsage } from "./lib/anthropic";
 
 // ============================================================================
-// 插件导出（唯一导出，避免其他函数被当作插件加载）
+// Plugin Export (single export to avoid other functions being loaded as plugin)
 // ============================================================================
+
+const TABLE_COLUMNS = [
+  "provider",
+  "account",
+  "plan",
+  "used",
+  "total",
+  "remaining",
+  "resetTime",
+] as const;
 
 export const MyStatusPlugin: Plugin = async () => {
   return {
     tool: {
       mystatus: tool({
         description:
-          "Query account quota usage for all configured AI platforms. Returns remaining quota percentages, usage stats, and reset countdowns with visual progress bars. Currently supports OpenAI (ChatGPT/Codex), Zhipu AI, Z.ai, MiniMax, Google Antigravity, and GitHub Copilot.",
+          "Query account quota usage for all configured AI platforms. Returns remaining quota percentages, usage stats, and reset countdowns with visual progress bars. Currently supports OpenAI (ChatGPT/Codex), MiniMax, Anthropic (Claude), and GitHub Copilot.",
         args: {},
         async execute() {
-          // 1. 读取 auth.json
+          // 1. Read auth.json
           const authPath = join(homedir(), ".local/share/opencode/auth.json");
           let authData: AuthData;
 
@@ -46,55 +59,83 @@ export const MyStatusPlugin: Plugin = async () => {
             );
           }
 
-          // 2. 并行查询所有平台（Google 不依赖 authData）
-          // MiniMax: prefer "minimax-coding-plan" key, fall back to "minimax"
-          const minimaxAuth =
-            authData["minimax-coding-plan"] ?? authData.minimax;
+          // 2. Build query tasks - only query configured providers
+          const queries: {
+            key: string;
+            result: Promise<QueryResult | null>;
+            title: string;
+          }[] = [];
 
-          const [
-            openaiResult,
-            zhipuResult,
-            zaiResult,
-            minimaxResult,
-            googleResult,
-            copilotResult,
-          ] = await Promise.all([
-            queryOpenAIUsage(authData.openai),
-            queryZhipuUsage(authData["zhipuai-coding-plan"]),
-            queryZaiUsage(authData["zai-coding-plan"]),
-            queryMiniMaxUsage(minimaxAuth),
-            queryGoogleUsage(),
-            queryCopilotUsage(authData["github-copilot"]),
-          ]);
+          // OpenAI
+          if (authData.openai) {
+            queries.push({
+              key: "openai",
+              result: queryOpenAIUsage(authData.openai),
+              title: t.openaiTitle,
+            });
+          }
 
-          // 3. 收集结果
+          // MiniMax
+          if (authData["minimax-coding-plan"] || authData.minimax) {
+            queries.push({
+              key: "minimax",
+              result: queryMiniMaxUsage(
+                authData["minimax-coding-plan"] ?? authData.minimax,
+              ),
+              title: t.minimaxTitle,
+            });
+          }
+
+          // GitHub Copilot
+          if (authData["github-copilot"]) {
+            queries.push({
+              key: "copilot",
+              result: queryCopilotUsage(authData["github-copilot"]),
+              title: t.copilotTitle,
+            });
+          }
+
+          // Anthropic (Claude.ai)
+          if (authData["anthropic"]) {
+            queries.push({
+              key: "anthropic",
+              result: queryAnthropicUsage(authData["anthropic"]),
+              title: t.anthropicTitle,
+            });
+          }
+
+          // 3. Query all configured providers in parallel
+          const queryResults = await Promise.all(queries.map((q) => q.result));
+
+          // 4. Collect results - both output (backward compatibility) and tableRow data
           const results: string[] = [];
+          const tableRows: TableRowData[] = [];
           const errors: string[] = [];
 
-          // 处理 OpenAI 结果
-          collectResult(openaiResult, t.openaiTitle, results, errors);
+          for (let i = 0; i < queries.length; i++) {
+            collectResult(
+              queryResults[i],
+              queries[i].title,
+              results,
+              errors,
+              tableRows,
+            );
+          }
 
-          // 处理智谱结果
-          collectResult(zhipuResult, t.zhipuTitle, results, errors);
-
-          // 处理 Z.ai 结果
-          collectResult(zaiResult, t.zaiTitle, results, errors);
-
-          // 处理 MiniMax 结果
-          collectResult(minimaxResult, t.minimaxTitle, results, errors);
-
-          // 处理 Google 结果
-          collectResult(googleResult, t.googleTitle, results, errors);
-
-          // 处理 GitHub Copilot 结果
-          collectResult(copilotResult, t.copilotTitle, results, errors);
-
-          // 4. 汇总输出
+          // 5. Aggregate output
           if (results.length === 0 && errors.length === 0) {
             return t.noAccounts;
           }
 
-          let output = results.join("\n");
+          let output = "";
+
+          // Render unified table if we have tableRow data
+          if (tableRows.length > 0) {
+            output = renderTable(tableRows);
+          } else if (results.length > 0) {
+            // Fallback to legacy block format
+            output = results.join("\n");
+          }
 
           if (errors.length > 0) {
             if (output) output += "\n\n";
@@ -109,22 +150,128 @@ export const MyStatusPlugin: Plugin = async () => {
 };
 
 /**
- * 收集查询结果到 results 和 errors 数组
- * 注意：这是内部函数，不导出，避免被 OpenCode 当作插件加载
+ * Render table from tableRow data
+ */
+function renderTable(rows: TableRowData[]): string {
+  const headers = t.tableHeader;
+  const colWidths = {
+    provider: Math.max(
+      headers.provider.length,
+      ...rows.map((r) => r.provider.length),
+    ),
+    account: Math.max(
+      headers.account.length,
+      ...rows.map((r) => r.account.length),
+    ),
+    plan: Math.max(headers.plan.length, ...rows.map((r) => r.plan.length)),
+    used: Math.max(headers.used.length, ...rows.map((r) => r.used.length)),
+    remaining: Math.max(
+      headers.remaining.length,
+      ...rows.map((r) => r.remaining.length),
+    ),
+    resetIn: Math.max(
+      headers.resetIn.length,
+      ...rows.map((r) => r.resetIn.length),
+    ),
+    resetDate: Math.max(
+      headers.resetDate.length,
+      ...rows.map((r) => r.resetDate.length),
+    ),
+  };
+
+  const pad = (s: string, w: number) => s.padEnd(w, " ");
+
+  const headerRow =
+    "|" +
+    pad(headers.provider, colWidths.provider) +
+    "|" +
+    pad(headers.account, colWidths.account) +
+    "|" +
+    pad(headers.plan, colWidths.plan) +
+    "|" +
+    pad(headers.used, colWidths.used) +
+    "|" +
+    pad(headers.remaining, colWidths.remaining) +
+    "|" +
+    pad(headers.resetIn, colWidths.resetIn) +
+    "|" +
+    pad(headers.resetDate, colWidths.resetDate) +
+    "|";
+
+  const separator =
+    "|" +
+    "-".repeat(colWidths.provider + 1) +
+    "|-" +
+    "-".repeat(colWidths.account + 1) +
+    "|-" +
+    "-".repeat(colWidths.plan + 1) +
+    "|-" +
+    "-".repeat(colWidths.used + 1) +
+    "|-" +
+    "-".repeat(colWidths.remaining + 1) +
+    "|-" +
+    "-".repeat(colWidths.resetIn + 1) +
+    "|-" +
+    "-".repeat(colWidths.resetDate + 1) +
+    "|";
+
+  const dataRows = rows.map((row) => {
+    return (
+      "|" +
+      pad(row.provider, colWidths.provider) +
+      "|" +
+      pad(row.account, colWidths.account) +
+      "|" +
+      pad(row.plan, colWidths.plan) +
+      "|" +
+      pad(row.used, colWidths.used) +
+      "|" +
+      pad(row.remaining, colWidths.remaining) +
+      "|" +
+      pad(row.resetIn, colWidths.resetIn) +
+      "|" +
+      pad(row.resetDate, colWidths.resetDate) +
+      "|"
+    );
+  });
+
+  return (
+    t.tableTitle +
+    "\n\n" +
+    headerRow +
+    "\n" +
+    separator +
+    "\n" +
+    dataRows.join("\n")
+  );
+}
+
+/**
+ * Collect query results into results and errors arrays
+ * Note: This is an internal function, not exported to avoid being loaded as a plugin by OpenCode
  */
 function collectResult(
   result: QueryResult | null,
   title: string,
   results: string[],
   errors: string[],
+  tableRows: TableRowData[],
 ): void {
   if (!result) return;
 
-  if (result.success && result.output) {
-    if (results.length > 0) results.push(""); // 分隔符
-    results.push(title);
-    results.push("");
-    results.push(result.output);
+  if (result.success) {
+    // Keep legacy output format for backward compatibility
+    if (result.output) {
+      if (results.length > 0) results.push(""); // Separator
+      results.push(title);
+      results.push("");
+      results.push(result.output);
+    }
+
+    // Collect table row data for unified table display
+    if (result.tableRows && result.tableRows.length > 0) {
+      tableRows.push(...result.tableRows);
+    }
   } else if (result.error) {
     errors.push(result.error);
   }

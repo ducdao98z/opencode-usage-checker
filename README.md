@@ -6,19 +6,18 @@
 
 An [OpenCode](https://opencode.ai) plugin to query account quota usage for multiple AI platforms.
 
-[中文文档](./README.zh-CN.md)
+[Tiếng Việt](./README.vi.md)
 
 ![Check AI Quota in One Click](./assets/mystatus-banner-en.jpeg)
 
 ## Supported Platforms
 
-| Platform     | Account Type      | Data Source                                    |
-| ------------ | ----------------- | ---------------------------------------------- |
-| OpenAI       | Plus / Team / Pro | `~/.local/share/opencode/auth.json`            |
-| Zhipu AI     | Coding Plan       | `~/.local/share/opencode/auth.json`            |
-| Z.ai         | Coding Plan       | `~/.local/share/opencode/auth.json`            |
-| GitHub Copilot | Individual / Business | `~/.local/share/opencode/auth.json`            |
-| Google Cloud | Antigravity       | `~/.config/opencode/antigravity-accounts.json` |
+| Platform       | Account Type          | Data Source                         |
+| -------------- | --------------------- | ----------------------------------- |
+| OpenAI         | Plus / Team / Pro     | `~/.local/share/opencode/auth.json` |
+| MiniMax        | Coding Plan           | `~/.local/share/opencode/auth.json` |
+| Anthropic      | Claude Pro            | `~/.local/share/opencode/auth.json` |
+| GitHub Copilot | Individual / Business | `~/.local/share/opencode/auth.json` |
 
 ## Installation
 
@@ -41,13 +40,13 @@ To install this plugin, perform these steps:
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Query quota usage for all AI accounts",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Query quota usage for all AI accounts",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 
@@ -61,13 +60,13 @@ To install this plugin, perform these steps:
 
 ```json
 {
-  "plugin": ["opencode-mystatus"],
-  "command": {
-    "mystatus": {
-      "description": "Query quota usage for all AI accounts",
-      "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+    "plugin": ["opencode-mystatus"],
+    "command": {
+        "mystatus": {
+            "description": "Query quota usage for all AI accounts",
+            "template": "Use the mystatus tool to query quota usage. Return the result as-is without modification."
+        }
     }
-  }
 }
 ```
 
@@ -96,7 +95,7 @@ Use the `/mystatus` command to get complete quota information:
 Simply ask in natural language, for example:
 
 - "Check my OpenAI quota"
-- "How much Codex quota do I have left?"
+- "How much quota do I have left?"
 - "Show my AI account status"
 
 OpenCode will automatically use the mystatus tool to answer your question.
@@ -109,26 +108,30 @@ OpenCode will automatically use the mystatus tool to answer your question.
 Account:        user@example.com (team)
 
 3-hour limit
-██████████████████████████████ 85% remaining
+███████████████████████████████ 85% remaining
 Resets in: 2h 30m
 
-## Zhipu AI Account Quota
+## MiniMax Account Quota
 
-Account:        9c89****AQVM (Coding Plan)
+Account:        MiniMax (abc1****xyz9)
 
-5-hour token limit
-██████████████████████████████ 95% remaining
-Used: 0.5M / 10.0M
-Resets in: 4h
+5-hour prompt limit
+███████████████████████████████ 80% remaining
+Used: 1,000 / 5,000 prompts
+Resets in: 4h 51m (at 11:20:10 19/02/2026)
 
-## Z.ai Account Quota
+## Anthropic Account Quota
 
-Account:        9c89****AQVM (Z.ai)
+Account:        Claude.ai (abc1****xyz9)
 
-5-hour token limit
-██████████████████████████████ 95% remaining
-Used: 0.5M / 10.0M
-Resets in: 4h
+5-hour window (Session)
+███████████████████████████████ 75% remaining
+Used: 75%
+Resets in: 3h 20m (at 15:30:45 19/02/2026)
+
+7-day window (Weekly)
+███████████████████████████████ 60% remaining
+Used: 40%
 
 ## GitHub Copilot Account Quota
 
@@ -137,36 +140,29 @@ Account:        GitHub Copilot (individual)
 Premium        ████░░░░░░░░░░░░░░░░ 24% (229/300)
 
 Quota resets: 19d 0h (2026-02-01)
-
-## Google Cloud Account Quota
-
-### user@gmail.com
-
-G3 Pro     4h 59m     ████████████████████ 100%
-G3 Image   4h 59m     ████████████████████ 100%
-G3 Flash   4h 59m     ████████████████████ 100%
-Claude     2d 9h      ░░░░░░░░░░░░░░░░░░░░ 0%
 ```
 
 ## Features
 
 - Query quota usage across multiple AI platforms in one command
 - Visual progress bars showing remaining quota
-- Reset time countdown
-- Multi-language support (Chinese / English)
-- Multiple Google Cloud accounts support
+- Reset time countdown with exact datetime
+- Multi-language support (English / Vietnamese)
 - API key masking for security
 
 ## Configuration
 
 No additional configuration required. The plugin automatically reads credentials from:
 
-- **OpenAI, Zhipu AI, Z.ai & GitHub Copilot**: `~/.local/share/opencode/auth.json`
-- **Google Cloud**: `~/.config/opencode/antigravity-accounts.json`
+- **OpenAI, MiniMax, Anthropic & GitHub Copilot**: `~/.local/share/opencode/auth.json`
 
-### Google Cloud Setup
+### MiniMax Setup
 
-To query Google Cloud (Antigravity) account quota, you need to install the [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) plugin first to authenticate your Google account.
+To query MiniMax Coding Plan quota, you need to obtain an API key from the MiniMax platform.
+
+### Anthropic Setup
+
+To query Anthropic (Claude) quota, you need OAuth credentials. The plugin uses the Anthropic OAuth API with refresh token support.
 
 ## Security
 
@@ -175,33 +171,19 @@ This plugin is safe to use:
 **Local Files Accessed (read-only):**
 
 - `~/.local/share/opencode/auth.json` - OpenCode's official auth storage
-- `~/.config/opencode/antigravity-accounts.json` - Antigravity plugin's account storage
 
 **API Endpoints (all official):**
 
 - `https://chatgpt.com/backend-api/wham/usage` - OpenAI official quota API
-- `https://bigmodel.cn/api/monitor/usage/quota/limit` - Zhipu AI official quota API
-- `https://api.z.ai/api/monitor/usage/quota/limit` - Z.ai official quota API
+- `https://www.minimax.io/v1/api/openplatform/coding_plan/remains` - MiniMax official API
+- `https://api.anthropic.com/api/oauth/usage` - Anthropic official API
 - `https://api.github.com/copilot_internal/user` - GitHub Copilot official API
-- `https://oauth2.googleapis.com/token` - Google official OAuth API
-- `https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels` - Google Cloud official API
 
 **Privacy:**
 
 - No data is stored, uploaded, or cached by this plugin
 - Sensitive information (API keys) is automatically masked in output
 - Source code is fully open for review
-
-## Google Cloud Models
-
-The plugin displays quota for these models:
-
-| Display Name | Model Key                                      |
-| ------------ | ---------------------------------------------- |
-| G3 Pro       | `gemini-3-pro-high` / `gemini-3-pro-low`       |
-| G3 Image     | `gemini-3-pro-image`                           |
-| G3 Flash     | `gemini-3-flash`                               |
-| Claude       | `claude-opus-4-5-thinking` / `claude-opus-4-5` |
 
 ## Development
 

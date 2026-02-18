@@ -1,19 +1,19 @@
 /**
- * 共享工具函数
+ * Shared Utility Functions
  *
- * [定位]: 被所有平台模块共享使用的工具函数
- * [同步]: openai.ts, zhipu.ts, google.ts
+ * [Location]: Shared utility functions used by all platform modules
+ * [Sync]: openai.ts, zhipu.ts, google.ts
  */
 
 import { t, currentLang } from "./i18n";
 import { REQUEST_TIMEOUT_MS } from "./types";
 
 // ============================================================================
-// 时间格式化
+// Time Formatting
 // ============================================================================
 
 /**
- * 将秒数转换为人类可读的时间格式
+ * Convert seconds to human-readable time format
  */
 export function formatDuration(seconds: number): string {
   const days = Math.floor(seconds / 86400);
@@ -28,20 +28,58 @@ export function formatDuration(seconds: number): string {
   return parts.join(currentLang === "en" ? " " : "");
 }
 
+/**
+ * Format reset time with two formats:
+ * 1. Relative time + exact time: "Resets in: 4h 51m (at 11:20:10 19/02/2026)"
+ * 2. Exact time only: "19/02/2026 11:20:10"
+ * 3. Compact countdown: "10d 12h 33m"
+ * 4. Display format: "12:12 - 12/02/2025"
+ */
+export function formatResetTime(
+  resetTimestamp: number,
+  dateOnly?: boolean,
+): string {
+  const now = Date.now();
+  const diffMs = resetTimestamp - now;
+
+  if (diffMs <= 0) {
+    return "Resets now";
+  }
+
+  const diffSeconds = Math.floor(diffMs / 1000);
+
+  const exactDate = new Date(resetTimestamp);
+  const day = exactDate.getDate().toString().padStart(2, "0");
+  const month = (exactDate.getMonth() + 1).toString().padStart(2, "0");
+  const year = exactDate.getFullYear();
+  const hours = exactDate.getHours().toString().padStart(2, "0");
+  const minutes = exactDate.getMinutes().toString().padStart(2, "0");
+  const seconds = exactDate.getSeconds().toString().padStart(2, "0");
+
+  if (dateOnly) {
+    return `${hours}:${minutes} - ${day}/${month}/${year}`;
+  }
+
+  const exactTime = `at ${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+  const relativeTime = formatDuration(diffSeconds);
+
+  return `Resets in: ${relativeTime} (${exactTime})`;
+}
+
 // ============================================================================
-// 进度条
+// Progress Bar
 // ============================================================================
 
 /**
- * 生成进度条（实心代表剩余额度）
- * @param remainPercent 剩余百分比 (0-100)
- * @param width 进度条宽度（字符数）
+ * Generate progress bar (filled represents remaining quota)
+ * @param remainPercent Remaining percentage (0-100)
+ * @param width Progress bar width (number of characters)
  */
 export function createProgressBar(
   remainPercent: number,
   width: number = 30,
 ): string {
-  // 确保百分比在有效范围内
+  // Ensure percentage is in valid range
   const safePercent = Math.max(0, Math.min(100, remainPercent));
   const filled = Math.round((safePercent / 100) * width);
   const empty = width - filled;
@@ -53,33 +91,33 @@ export function createProgressBar(
 }
 
 // ============================================================================
-// 数值格式化
+// Number Formatting
 // ============================================================================
 
 /**
- * 计算剩余百分比并取整
- * @param usedPercent 已使用百分比
+ * Calculate remaining percentage and round
+ * @param usedPercent Used percentage
  */
 export function calcRemainPercent(usedPercent: number): number {
   return Math.round(100 - usedPercent);
 }
 
 /**
- * 格式化 Token 数量（以百万为单位）
+ * Format token count (in millions)
  */
 export function formatTokens(tokens: number): string {
   return (tokens / 1000000).toFixed(1) + "M";
 }
 
 // ============================================================================
-// 网络请求
+// Network Requests
 // ============================================================================
 
 /**
- * 带超时的 fetch 请求
- * @param url 请求 URL
- * @param options fetch 选项
- * @param timeoutMs 超时时间（毫秒），默认使用全局配置
+ * Fetch request with timeout
+ * @param url Request URL
+ * @param options Fetch options
+ * @param timeoutMs Timeout in milliseconds, defaults to global config
  */
 export async function fetchWithTimeout(
   url: string,
@@ -106,11 +144,11 @@ export async function fetchWithTimeout(
 }
 
 // ============================================================================
-// 安全计算
+// Safe Calculations
 // ============================================================================
 
 /**
- * 安全获取数组最大值，空数组返回 0
+ * Safely get max value of array, returns 0 for empty array
  */
 export function safeMax(arr: number[]): number {
   if (arr.length === 0) return 0;
@@ -118,14 +156,14 @@ export function safeMax(arr: number[]): number {
 }
 
 // ============================================================================
-// 字符串处理
+// String Processing
 // ============================================================================
 
 /**
- * 脱敏显示敏感字符串
- * 显示前 N 位和后 N 位，中间用 **** 替代
- * @param str 原始字符串
- * @param showChars 前后各显示的字符数，默认 4
+ * Mask sensitive string for display
+ * Shows first N and last N characters, middle replaced with ****
+ * @param str Original string
+ * @param showChars Number of chars to show at start/end, default 4
  */
 export function maskString(str: string, showChars: number = 4): string {
   if (str.length <= showChars * 2) {

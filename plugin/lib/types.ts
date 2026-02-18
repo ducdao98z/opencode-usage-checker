@@ -1,29 +1,43 @@
 /**
- * 共享类型定义
+ * Shared Type Definitions
  *
- * [定位]: 被所有平台模块共享使用的类型
- * [同步]: openai.ts, zhipu.ts, google.ts, minimax.ts, mystatus.ts
+ * [Location]: Shared types used by all platform modules
+ * [Sync]: openai.ts, minimax.ts, anthropic.ts, copilot.ts, mystatus.ts
  */
 
 // ============================================================================
-// 查询结果类型
+// Query Result Types
 // ============================================================================
 
 /**
- * 平台查询结果
+ * Platform query result
  */
 export interface QueryResult {
   success: boolean;
   output?: string;
   error?: string;
+  tableRows?: TableRowData[];
+}
+
+/**
+ * Table row data for unified table display
+ */
+export interface TableRowData {
+  provider: string;
+  account: string;
+  plan: string;
+  used: string;
+  remaining: string;
+  resetIn: string;
+  resetDate: string;
 }
 
 // ============================================================================
-// 认证数据类型
+// Auth Data Types
 // ============================================================================
 
 /**
- * OpenAI OAuth 认证数据
+ * OpenAI OAuth auth data
  */
 export interface OpenAIAuthData {
   type: string;
@@ -33,15 +47,7 @@ export interface OpenAIAuthData {
 }
 
 /**
- * 智谱 AI API 认证数据
- */
-export interface ZhipuAuthData {
-  type: string;
-  key?: string;
-}
-
-/**
- * MiniMax Coding Plan API 认证数据
+ * MiniMax Coding Plan API auth data
  * Auth keys in auth.json: "minimax-coding-plan" and/or "minimax"
  */
 export interface MiniMaxAuthData {
@@ -50,7 +56,18 @@ export interface MiniMaxAuthData {
 }
 
 /**
- * GitHub Copilot 认证数据
+ * Anthropic API auth data
+ * Auth key in auth.json: "anthropic"
+ */
+export interface AnthropicAuthData {
+  type: string;
+  access?: string;
+  refresh?: string;
+  expires?: number;
+}
+
+/**
+ * GitHub Copilot auth data
  */
 export interface CopilotAuthData {
   type: string;
@@ -82,44 +99,22 @@ export interface CopilotQuotaConfig {
 }
 
 /**
- * Antigravity 账号（来自 ~/.config/opencode/antigravity-accounts.json）
- */
-export interface AntigravityAccount {
-  email?: string;
-  refreshToken: string;
-  projectId?: string;
-  managedProjectId?: string;
-  addedAt: number;
-  lastUsed: number;
-  rateLimitResetTimes?: Record<string, number>;
-}
-
-/**
- * Antigravity 账号文件
- */
-export interface AntigravityAccountsFile {
-  version: number;
-  accounts: AntigravityAccount[];
-}
-
-/**
- * 完整认证数据结构
+ * Complete auth data structure
  */
 export interface AuthData {
   openai?: OpenAIAuthData;
-  "zhipuai-coding-plan"?: ZhipuAuthData;
-  "zai-coding-plan"?: ZhipuAuthData;
   "github-copilot"?: CopilotAuthData;
   "minimax-coding-plan"?: MiniMaxAuthData;
   minimax?: MiniMaxAuthData;
+  anthropic?: AnthropicAuthData;
 }
 
 // ============================================================================
-// 常量配置
+// Constants Configuration
 // ============================================================================
 
-/** 高使用率警告阈值（百分比） */
+/** High usage warning threshold (percentage) */
 export const HIGH_USAGE_THRESHOLD = 80;
 
-/** API 请求超时时间（毫秒） */
+/** API request timeout (milliseconds) */
 export const REQUEST_TIMEOUT_MS = 10000;
