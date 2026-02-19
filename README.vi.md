@@ -1,5 +1,7 @@
 # opencode-usage-checker
 
+Base on: [opencode-mystatus](https://github.com/vbgate/opencode-mystatus)
+
 [![npm](https://img.shields.io/npm/v/opencode-usage-checker)](https://www.npmjs.com/package/opencode-usage-checker)
 
 Plugin [OpenCode](https://opencode.ai) để truy vấn hạn mức sử dụng tài khoản nhiều nền tảng AI.

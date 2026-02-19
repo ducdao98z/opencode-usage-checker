@@ -1,6 +1,6 @@
 # opencode-usage-checker
 
-Base on: [opencode-usage-checker](https://github.com/vbgate/opencode-usage-checker)
+Base on: [opencode-mystatus](https://github.com/vbgate/opencode-mystatus)
 
 [![npm](https://img.shields.io/npm/v/opencode-usage-checker)](https://www.npmjs.com/package/opencode-usage-checker)
 
