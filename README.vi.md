@@ -1,4 +1,6 @@
-# opencode-mystatus
+# opencode-usage-checker
+
+[![npm](https://img.shields.io/npm/v/opencode-usage-checker)](https://www.npmjs.com/package/opencode-usage-checker)
 
 Plugin [OpenCode](https://opencode.ai) để truy vấn hạn mức sử dụng tài khoản nhiều nền tảng AI.
 
@@ -20,7 +22,7 @@ Plugin [OpenCode](https://opencode.ai) để truy vấn hạn mức sử dụng 
 Dán nội dung này vào bất kỳ tác nhân AI nào (Claude Code, OpenCode, Cursor, v.v.):
 
 ```
-Install the opencode-mystatus plugin by following: https://raw.githubusercontent.com/vbgate/opencode-mystatus/main/README.md
+Install the opencode-usage-checker plugin by following: https://raw.githubusercontent.com/vbgate/opencode-usage-checker/main/README.md
 ```
 
 <details>
@@ -28,13 +30,13 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 Để cài đặt plugin này, thực hiện các bước sau:
 
-1. Thêm `"opencode-mystatus"` vào mảng `plugin` trong `~/.config/opencode/opencode.json`
+1. Thêm `"opencode-usage-checker"` vào mảng `plugin` trong `~/.config/opencode/opencode.json`
 
 2. Thêm lệnh slash vào đối tượng `command` trong cùng file đó:
 
 ```json
 {
-    "plugin": ["opencode-mystatus"],
+    "plugin": ["opencode-usage-checker"],
     "command": {
         "mystatus": {
             "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",
@@ -54,7 +56,7 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 ```json
 {
-    "plugin": ["opencode-mystatus"],
+    "plugin": ["opencode-usage-checker"],
     "command": {
         "mystatus": {
             "description": "Truy vấn hạn mức sử dụng cho tất cả tài khoản AI",

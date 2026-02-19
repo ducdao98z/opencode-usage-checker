@@ -1,6 +1,8 @@
 # opencode-usage-checker
 
-Base on: [opencode-mystatus](https://github.com/vbgate/opencode-mystatus)
+Base on: [opencode-usage-checker](https://github.com/vbgate/opencode-usage-checker)
+
+[![npm](https://img.shields.io/npm/v/opencode-usage-checker)](https://www.npmjs.com/package/opencode-usage-checker)
 
 An [OpenCode](https://opencode.ai) plugin to query account quota usage for multiple AI platforms.
 
@@ -22,7 +24,7 @@ An [OpenCode](https://opencode.ai) plugin to query account quota usage for multi
 Paste this into any LLM agent (Claude Code, OpenCode, Cursor, etc.):
 
 ```
-Install the opencode-mystatus plugin by following: https://raw.githubusercontent.com/vbgate/opencode-mystatus/main/README.md
+Install the opencode-usage-checker plugin by following: https://raw.githubusercontent.com/vbgate/opencode-usage-checker/main/README.md
 ```
 
 <details>
@@ -30,13 +32,13 @@ Install the opencode-mystatus plugin by following: https://raw.githubusercontent
 
 To install this plugin, perform these steps:
 
-1. Add `"opencode-mystatus"` to the `plugin` array in `~/.config/opencode/opencode.json`
+1. Add `"opencode-usage-checker"` to the `plugin` array in `~/.config/opencode/opencode.json`
 
 2. Add the slash command to the `command` object in the same file:
 
 ```json
 {
-    "plugin": ["opencode-mystatus"],
+    "plugin": ["opencode-usage-checker"],
     "command": {
         "mystatus": {
             "description": "Query quota usage for all AI accounts",
@@ -56,7 +58,7 @@ To install this plugin, perform these steps:
 
 ```json
 {
-    "plugin": ["opencode-mystatus"],
+    "plugin": ["opencode-usage-checker"],
     "command": {
         "mystatus": {
             "description": "Query quota usage for all AI accounts",
