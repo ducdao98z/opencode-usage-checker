@@ -58,7 +58,7 @@ interface MiniMaxRemainsResponse {
 // ============================================================================
 
 const MINIMAX_QUOTA_URL =
-  "https://www.minimax.io/v1/api/openplatform/coding_plan/remains";
+  "https://api.minimax.io/v1/api/openplatform/coding_plan/remains";
 
 // ============================================================================
 // API Calls - use curl subprocess to avoid Cloudflare blocking
